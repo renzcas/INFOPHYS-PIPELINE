@@ -1,12 +1,10 @@
-# streamlit_app.py
 import json
 import time
 
 import numpy as np
 import streamlit as st
 import websockets
-
-# ---------------- Config ----------------
+import asyncio
 
 FASTAPI_WS_URL = "ws://localhost:8000/ws/telemetry"
 
@@ -15,8 +13,6 @@ st.title("🧬 Organism Cockpit — FastAPI + Streamlit")
 
 status_placeholder = st.empty()
 placeholder = st.empty()
-
-# ---------------- Telemetry loop ----------------
 
 async def telemetry_loop():
     async with websockets.connect(FASTAPI_WS_URL) as ws:
@@ -29,7 +25,6 @@ async def telemetry_loop():
             with placeholder.container():
                 col1, col2, col3 = st.columns(3)
 
-                # Physics
                 with col1:
                     st.subheader("⚙️ Physics")
                     st.write({
@@ -38,7 +33,6 @@ async def telemetry_loop():
                         "density": out.get("density"),
                     })
 
-                # Attention
                 with col2:
                     st.subheader("🎯 Attention")
                     att = out.get("attention", {})
@@ -50,25 +44,21 @@ async def telemetry_loop():
                         "energy": att.get("energy"),
                     })
 
-                # Decision
                 with col3:
                     st.subheader("🧭 Decision")
                     st.write(out.get("decision"))
 
-                # Symbolic
                 st.subheader("🔣 Symbolic Cortex")
                 st.write(out.get("symbolic"))
 
-                # STDP
                 st.subheader("⚡ STDP")
                 st.write(out.get("stdp"))
 
             time.sleep(0.05)
 
-# ---------------- Run async from Streamlit ----------------
-
-import asyncio
+async def start():
+    await telemetry_loop()
 
 if "loop_started" not in st.session_state:
     st.session_state["loop_started"] = True
-    asyncio.run(telemetry_loop())
+    asyncio.create_task(start())
