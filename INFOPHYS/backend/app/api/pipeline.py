@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
-from app.core.telemetry_bus import bus
+from INFOPHYS.backend.app.core.telemetry_bus import bus
 
 router = APIRouter()
 

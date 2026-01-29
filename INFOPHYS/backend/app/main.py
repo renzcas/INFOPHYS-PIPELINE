@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api import pipeline
+from INFOPHYS.backend.app.api import pipeline, telemetry, legacy
 
 app = FastAPI(title="INFOPHYS PIPELINE API")
 
@@ -12,4 +12,9 @@ app.add_middleware(
 )
 
 app.include_router(pipeline.router, prefix="/pipeline", tags=["pipeline"])
-app.include_router(telemetry_old_REST.router, prefix="/telemetry", tags=["telemetry"])
+app.include_router(telemetry.router, prefix="/telemetry", tags=["telemetry"])
+app.include_router(legacy.router, prefix="/legacy", tags=["legacy"])
+
+@app.get("/")
+def root():
+    return {"status": "INFOPHYS backend online"}

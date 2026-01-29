@@ -1,6 +1,6 @@
 from fastapi import APIRouter, WebSocket
-from app.core.telemetry_bus import bus
-from app.api.models import TelemetryEvent
+from INFOPHYS.backend.app.core.telemetry_bus import bus
+from INFOPHYS.backend.app.api.models import TelemetryEvent
 
 router = APIRouter()
 
