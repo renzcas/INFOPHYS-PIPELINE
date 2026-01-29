@@ -1,14 +1,11 @@
-import math
+class OrganRegistry:
+    def __init__(self):
+        self.organs = {}
 
-class DecisionOrgan:
-    def step(self, lagrangian, dt):
-        # least-action principle
-        action = lagrangian * dt
+    def register(self, name, organ):
+        """Register an organ instance under a given name."""
+        self.organs[name] = organ
 
-        # decision = sign of action gradient
-        decision = -1 if action > 0 else 1
-
-        return {
-            "action_value": action,
-            "decision": decision
-        }
+    def get(self, name):
+        """Retrieve an organ by name, or None if missing."""
+        return self.organs.get(name)
