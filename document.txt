@@ -1,1 +1,24 @@
 #code
+INFOPHYS/
+  PIPELINE/
+    particles/
+    fields/
+    geometry/
+    synapses/
+    agent/
+    organs/
+    utils/
+    core/
+    discriminant/
+
+  backend/
+    app/
+      api/
+      db/
+      core/
+
+  frontend/
+    src/
+      components/
+      pages/
+      api/
