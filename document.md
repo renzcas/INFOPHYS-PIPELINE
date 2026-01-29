@@ -22,7 +22,66 @@ INFOPHYS/
       components/
       pages/
       api/
+infophys-app/
+  backend/
+    app/
+      api/
+        __init__.py
+        pipeline.py      # endpoints for running PIPELINE
+        telemetry.py     # streaming internal states
+      core/
+        pipeline_core/   # your PIPELINE modules
+      db/
+        models.py
+        session.py
+      main.py            # FastAPI entrypoint
+  frontend/
+    src/
+      components/
+        ParticlesPanel.tsx
+        FieldsPanel.tsx
+        GeometryPanel.tsx
+        SynapsesPanel.tsx
+        AgentPanel.tsx
+        WorldPanel.tsx
+        MemoryPanel.tsx
+      pages/
+        Dashboard.tsx
+      api/
+        client.ts        # axios/fetch wrapper
+    package.json
 
+///////////////////////////////what the cockpit sees per step]
+#telemetrt
+{
+  "t": 12,
+  "run_id": "abc123",
+  "obs": [...],
+  "particles": {
+    "h_t": [...],
+    "attention_entropy": 1.23
+  },
+  "fields": {
+    "phi_t": [...],
+    "energy": 0.87
+  },
+  "geometry": {
+    "z_t": [...],
+    "manifold_spread": 2.1
+  },
+  "synapses": {
+    "delta_W_norm": 0.05
+  },
+  "agent": {
+    "action": [0.1, -0.2],
+    "log_prob": -0.34,
+    "estimated_return": 3.7
+  },
+  "world": {
+    "reward": 1.0,
+    "done": false
+  }
+}
 
       ///////////////////////
 
@@ -37,7 +96,68 @@ P        : plasticity traces
 θ        : agent parameters
 𝓜        : memory buffer
 
+//////////////////////////////////PIPELINE publishes /////telemetry ///////every step
+Inside your training loop:
+////////////////////////////////
+#Python
+await bus.publish({
+    "t": t,
+    "particles": {"h_t": h_t.tolist()},
+    "fields": {"phi_t": phi_t.tolist()},
+    "geometry": {"z_t": z_t.tolist()},
+    "synapses": {"delta_W": float(delta_W_norm)},
+    "agent": {"action": a_t, "return": float(R_t)},
+    "world": {"reward": float(r_t), "done": done}
+})
+
 //////////////////////////////////
+
+class TelemetryEvent(BaseModel):
+    t: int
+    run_id: str
+
+    particles: ParticlesTelemetry
+    fields: FieldsTelemetry
+    geometry: GeometryTelemetry
+    synapses: SynapsesTelemetry
+    agent: AgentTelemetry
+    world: WorldTelemetry
+
+2. Full Telemetry Event Model
+This is the single object your WebSocket sends every step.
+
+
+{
+  "t": 42,
+  "run_id": "run_2026_01_28_1530",
+  "particles": {
+    "h_t": [[0.1, 0.2], [0.3, 0.4]],
+    "attention_entropy": 1.23
+  },
+  "fields": {
+    "phi_t": [[0.5, 0.6], [0.7, 0.8]],
+    "energy": 0.87
+  },
+  "geometry": {
+    "z_t": [[1.1, 1.2], [1.3, 1.4]],
+    "manifold_spread": 2.1
+  },
+  "synapses": {
+    "delta_W": 0.05,
+    "plasticity_level": 0.9
+  },
+  "agent": {
+    "action": [0.1, -0.2],
+    "log_prob": -0.34,
+    "estimated_return": 3.7
+  },
+  "world": {
+    "reward": 1.0,
+    "done": false
+  }
+}
+
+/////////////////////////////////////////
 
 function TRAIN(PIPELINE, ENV, Episodes, Horizon):
 
