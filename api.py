@@ -1,31 +1,19 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
 from engine.registry import OrganRegistry
 from engine.pipeline import Pipeline
-import numpy as np
 
-app = FastAPI(title="INFOPHYS Pipeline")
+app = FastAPI(title="INFOPHYS Cockpit")
 
 registry = OrganRegistry()
 pipeline = Pipeline(registry)
 
-class StepInput(BaseModel):
-    mass: float = 1.0
-    velocity: float = 2.0
-    height: float = 1.0
-    prediction_error: float = 0.3
-    signal_points: int = 128
+@app.get("/step")
+def step_endpoint():
+    mass = 1.0
+    velocity = 2.0
+    height = 1.0
+    prediction_error = 0.3
+    signal = [0.0] * 128  # placeholder; can be real input later
 
-@app.post("/step")
-def step(input_data: StepInput):
-    x = np.linspace(0, 2 * np.pi, input_data.signal_points)
-    signal = np.sin(x)
-
-    step_data = pipeline.step(
-        input_data.mass,
-        input_data.velocity,
-        input_data.height,
-        input_data.prediction_error,
-        signal,
-    )
-    return step_data
+    data = pipeline.step(mass, velocity, height, prediction_error, signal)
+    return data

@@ -1,31 +1,38 @@
-from core.time import now, dt
-from core.lagrangian import action
+import time
 
 class Pipeline:
     def __init__(self, registry):
         self.registry = registry
-        self.last_t = now()
-        self.l_history = []
+        self.last_time = time.time()
 
     def step(self, mass, velocity, height, prediction_error, signal):
-        t_now = now()
-        delta_t = dt(self.last_t)
-        self.last_t = t_now
+        now = time.time()
+        dt = now - self.last_time
+        self.last_time = now
 
-        physics = self.registry.get("physics").compute_state_energy(
-            mass, velocity, height
-        )
-        mind = self.registry.get("mind").attention_from_error(prediction_error)
-        compute = self.registry.get("compute").analyze_signal(signal)
-
-        self.l_history.append(physics["L"])
-        total_action = action(self.l_history, delta_t)
-
-        return {
-            "time": t_now,
-            "dt": delta_t,
-            "physics": physics,
-            "mind": mind,
-            "compute": compute,
-            "action": total_action,
+        out = {
+            "t": now,
+            "dt": dt,
         }
+
+        # Physics organ
+        if "physics" in self.registry.organs:
+            phys = self.registry.organs["physics"].step(mass, velocity, height)
+            out.update(phys)
+
+        # Compute organ
+        if "compute" in self.registry.organs:
+            comp = self.registry.organs["compute"].step(prediction_error)
+            out.update(comp)
+
+        # Mind organ
+        if "mind" in self.registry.organs:
+            mind = self.registry.organs["mind"].step(signal)
+            out.update(mind)
+
+        # STDP organ
+        if "stdp" in self.registry.organs:
+            stdp = self.registry.organs["stdp"].step(signal)
+            out["stdp"] = stdp
+
+        return out
