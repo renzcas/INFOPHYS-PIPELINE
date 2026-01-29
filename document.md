@@ -458,3 +458,103 @@ P        : plasticity traces
 
 
 ///////////////////////////
+
+What this module actually does
+1. Laplacian
+Implements the discrete second derivative:
+
+This enforces smoothness, coherence, and global structure.
+2. Potential gradient
+If you enable the learnable potential:
+
+the system learns energy landscapes that shape the field.
+This is where you can encode:
+• 	attractors
+• 	repellers
+• 	constraints
+• 	priors
+• 	physics‑inspired regularization
+3. PDE update
+The core relaxation step:
+
+This is the heart of the Fields module
+
+///////////////////////////////////
+
+What this module actually does
+1. Laplacian
+Implements the discrete second derivative:
+
+This enforces smoothness, coherence, and global structure.
+2. Potential gradient
+If you enable the learnable potential:
+
+the system learns energy landscapes that shape the field.
+This is where you can encode:
+• 	attractors
+• 	repellers
+• 	constraints
+• 	priors
+• 	physics‑inspired regularization
+3. PDE update
+The core relaxation step:
+
+This is the heart of the Fields module.
+
+How to integrate it into PIPELINE
+In your orchestrator:
+
+Or if you want the module to maintain its own internal state:
+
+
+If you want next:
+I can now build B: the exact JSON/IPC schema for AgentDash to subscribe to:
+• 	particle interactions
+• 	field states
+• 	embeddings
+• 	synaptic updates
+• 	agent actions
+• 	memory events
+Just say “B” and I’ll deliver a clean, cockpit‑ready schema
+
+//////////////////////////////////////
+
+
+
+What this module actually does
+1. Laplacian
+Implements the discrete second derivative:
+
+This enforces smoothness, coherence, and global structure.
+2. Potential gradient
+If you enable the learnable potential:
+
+the system learns energy landscapes that shape the field.
+This is where you can encode:
+• 	attractors
+• 	repellers
+• 	constraints
+• 	priors
+• 	physics‑inspired regularization
+3. PDE update
+The core relaxation step:
+
+This is the heart of the Fields module.
+
+How to integrate it into PIPELINE
+In your orchestrator:
+
+Or if you want the module to maintain its own internal state:
+
+
+If you want next:
+I can now build B: the exact JSON/IPC schema for AgentDash to subscribe to:
+• 	particle interactions
+• 	field states
+• 	embeddings
+• 	synaptic updates
+• 	agent actions
+• 	memory events
+Just say “B” and I’ll deliver a clean, cockpit‑ready schema
+
+////////////////////////////
