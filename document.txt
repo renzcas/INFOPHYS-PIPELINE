@@ -22,3 +22,439 @@ INFOPHYS/
       components/
       pages/
       api/
+
+
+      ///////////////////////
+
+      x_t      : observation at time t
+h_t      : particle‑interaction representation
+φ_t      : latent field
+z_t      : geometric embedding on manifold ℳ
+a_t      : action
+r_t      : reward
+W        : synaptic weights
+P        : plasticity traces
+θ        : agent parameters
+𝓜        : memory buffer
+
+//////////////////////////////////
+
+function TRAIN(PIPELINE, ENV, Episodes, Horizon):
+
+    initialize W, P, θ
+    initialize memory 𝓜 ← ∅
+
+    for episode in 1..Episodes:
+
+        s_0 ← ENV.reset()
+        x_0 ← OBSERVE(s_0)
+        τ   ← ∅
+
+        for t in 0..Horizon:
+
+            ###############################################################
+            # 1. PARTICLES INTERACT → ATTENTION
+            ###############################################################
+            # Compute attention representation:
+            #   Q_t = W_Q x_t
+            #   K_t = W_K x_t
+            #   V_t = W_V x_t
+            #
+            #   α_t = softmax( (Q_t K_tᵀ) / √d_k )
+            #   h_t = α_t V_t
+            ###############################################################
+            h_t ← PARTICLES.ATTEND(x_t)
+
+
+            ###############################################################
+            # 2. FIELDS RELAX → DIFFUSION
+            ###############################################################
+            # Continuous diffusion equation:
+            #   ∂φ/∂t = D ∇²φ - ∂U(φ)/∂φ
+            #
+            # Discretized relaxation step:
+            #   φ_{t+1} = φ_t + Δt [ D ∇²φ_t - ∂U(φ_t)/∂φ ]
+            ###############################################################
+            φ_t ← FIELDS.RELAX(h_t, t)
+
+
+            ###############################################################
+            # 3. GEOMETRY FORMS → EMBEDDINGS
+            ###############################################################
+            # Embedding map:
+            #   z_t = E(φ_t; W_E)
+            #
+            # Riemannian metric on ℳ:
+            #   d(z_i, z_j)² = (z_i - z_j)ᵀ G (z_i - z_j)
+            ###############################################################
+            z_t ← GEOMETRY.EMBED(φ_t)
+
+
+            ###############################################################
+            # 4. AGENT ACTS → LAGRANGIAN POLICY
+            ###############################################################
+            # Lagrangian:
+            #   ℒ(q_t, ẋ_t, a_t, t) = K(q_t, ẋ_t, a_t) - V(q_t, t)
+            #
+            # Action functional:
+            #   S[τ] = Σ_t ℒ(q_t, ẋ_t, a_t, t) Δt
+            #
+            # Policy selects a_t to minimize expected S:
+            #   a_t ~ π_θ(a | z_t)
+            ###############################################################
+            a_t ← AGENT.POLICY(z_t, t)
+
+
+            ###############################################################
+            # 5. ENVIRONMENT TRANSITION
+            ###############################################################
+            (s_{t+1}, r_t, done, info) ← ENV.step(a_t)
+            x_{t+1} ← OBSERVE(s_{t+1})
+
+
+            ###############################################################
+            # 6. MEMORY UPDATE
+            ###############################################################
+            event = {t, x_t, z_t, a_t, r_t}
+            𝓜 ← 𝓜 ∪ {event}
+            τ ← τ ∪ {event}
+
+            x_t ← x_{t+1}
+            if done:
+                break
+
+
+        ###################################################################
+        # 7. SYNAPSES ADAPT → STDP
+        ###################################################################
+        # Classical STDP:
+        #   Δw_ij =
+        #       η A_+ exp(-Δt/τ_+)   if Δt > 0
+        #      -η A_- exp( Δt/τ_- )  if Δt < 0
+        #
+        # Generalized to embeddings + reward:
+        #   ΔW ∝ Σ_t f_STDP(z_t, z_{t+1}, r_t, P_t)
+        ###################################################################
+        (W, P) ← SYNAPSES.UPDATE(τ, W, P)
+
+
+        ###################################################################
+        # 8. AGENT EVOLVES → LAGRANGIAN LEARNING
+        ###################################################################
+        # Objective:
+        #   J(θ) = E[ -S[τ] + Σ_t γ^t r_t ]
+        #
+        # Policy gradient:
+        #   ∇θ J ≈ Σ_t ∇θ log π_θ(a_t | z_t) (R_t - b_t)
+        ###################################################################
+        θ ← AGENT.UPDATE_OBJECTIVE(τ, θ)
+
+    return W, θ, P, 𝓜
+
+    /////////////////////////////////
+
+    function TRAIN(PIPELINE, ENV, Episodes, Horizon):
+
+    initialize W, P, θ
+    initialize memory 𝓜 ← ∅
+
+    for episode in 1..Episodes:
+
+        s_0 ← ENV.reset()
+        x_0 ← OBSERVE(s_0)
+        τ   ← ∅
+
+        for t in 0..Horizon:
+
+            ###############################################################
+            # 1. PARTICLES INTERACT → ATTENTION
+            ###############################################################
+            # Compute attention representation:
+            #   Q_t = W_Q x_t
+            #   K_t = W_K x_t
+            #   V_t = W_V x_t
+            #
+            #   α_t = softmax( (Q_t K_tᵀ) / √d_k )
+            #   h_t = α_t V_t
+            ###############################################################
+            h_t ← PARTICLES.ATTEND(x_t)
+
+
+            ###############################################################
+            # 2. FIELDS RELAX → DIFFUSION
+            ###############################################################
+            # Continuous diffusion equation:
+            #   ∂φ/∂t = D ∇²φ - ∂U(φ)/∂φ
+            #
+            # Discretized relaxation step:
+            #   φ_{t+1} = φ_t + Δt [ D ∇²φ_t - ∂U(φ_t)/∂φ ]
+            ###############################################################
+            φ_t ← FIELDS.RELAX(h_t, t)
+
+
+            ###############################################################
+            # 3. GEOMETRY FORMS → EMBEDDINGS
+            ###############################################################
+            # Embedding map:
+            #   z_t = E(φ_t; W_E)
+            #
+            # Riemannian metric on ℳ:
+            #   d(z_i, z_j)² = (z_i - z_j)ᵀ G (z_i - z_j)
+            ###############################################################
+            z_t ← GEOMETRY.EMBED(φ_t)
+
+
+            ###############################################################
+            # 4. AGENT ACTS → LAGRANGIAN POLICY
+            ###############################################################
+            # Lagrangian:
+            #   ℒ(q_t, ẋ_t, a_t, t) = K(q_t, ẋ_t, a_t) - V(q_t, t)
+            #
+            # Action functional:
+            #   S[τ] = Σ_t ℒ(q_t, ẋ_t, a_t, t) Δt
+            #
+            # Policy selects a_t to minimize expected S:
+            #   a_t ~ π_θ(a | z_t)
+            ###############################################################
+            a_t ← AGENT.POLICY(z_t, t)
+
+
+            ###############################################################
+            # 5. ENVIRONMENT TRANSITION
+            ###############################################################
+            (s_{t+1}, r_t, done, info) ← ENV.step(a_t)
+            x_{t+1} ← OBSERVE(s_{t+1})
+
+
+            ###############################################################
+            # 6. MEMORY UPDATE
+            ###############################################################
+            event = {t, x_t, z_t, a_t, r_t}
+            𝓜 ← 𝓜 ∪ {event}
+            τ ← τ ∪ {event}
+
+            x_t ← x_{t+1}
+            if done:
+                break
+
+
+        ###################################################################
+        # 7. SYNAPSES ADAPT → STDP
+        ###################################################################
+        # Classical STDP:
+        #   Δw_ij =
+        #       η A_+ exp(-Δt/τ_+)   if Δt > 0
+        #      -η A_- exp( Δt/τ_- )  if Δt < 0
+        #
+        # Generalized to embeddings + reward:
+        #   ΔW ∝ Σ_t f_STDP(z_t, z_{t+1}, r_t, P_t)
+        ###################################################################
+        (W, P) ← SYNAPSES.UPDATE(τ, W, P)
+
+
+        ###################################################################
+        # 8. AGENT EVOLVES → LAGRANGIAN LEARNING
+        ###################################################################
+        # Objective:
+        #   J(θ) = E[ -S[τ] + Σ_t γ^t r_t ]
+        #
+        # Policy gradient:
+        #   ∇θ J ≈ Σ_t ∇θ log π_θ(a_t | z_t) (R_t - b_t)
+        ###################################################################
+        θ ← AGENT.UPDATE_OBJECTIVE(τ, θ)
+
+    return W, θ, P, 𝓜
+
+//////////////////////////////////////////////////
+
+def train(pipeline, env, steps, horizon):
+    memory = pipeline["memory"]
+    particles = pipeline["particles"]
+    fields = pipeline["fields"]
+    geometry = pipeline["geometry"]
+    synapses = pipeline["synapses"]
+    agent = pipeline["agent"]
+
+    for step in range(steps):
+        trajectory = []
+
+        obs = env.reset()
+
+        for t in range(horizon):
+            # 1. Particles interact → attention
+            particle_state = particles.forward(obs)
+
+            # 2. Fields relax → diffusion
+            field_state = fields.step(particle_state, t)
+
+            # 3. Geometry forms → embeddings
+            embedding = geometry.encode(field_state)
+
+            # 4. Agent chooses action (Lagrangian policy)
+            action = agent.act(embedding, state=obs)
+
+            # 5. Environment responds
+            next_obs, reward, done, info = env.step(action)
+
+            # 6. Store event
+            event = {
+                "t": t,
+                "obs": obs,
+                "embedding": embedding,
+                "action": action,
+                "reward": reward,
+            }
+            memory.write(event)
+            trajectory.append(event)
+
+            obs = next_obs
+            if done:
+                break
+
+        # 7. Synapses adapt → STDP
+        synapses.update([e["embedding"] for e in trajectory],
+                        reward=sum(e["reward"] for e in trajectory))
+
+        # 8. Agent evolves → Lagrangian learning
+        agent.update_objective(trajectory)
+
+        print(f"Step {step+1}/{steps} complete")
+        /////////////
+        What this loop actually does
+• 	Attention binds information into meaningful interactions
+• 	Diffusion smooths and stabilizes the latent field
+• 	Geometry encodes the world into a manifold the agent can reason over
+• 	STDP rewires the system based on temporal causality
+• 	Lagrangian learning optimizes the agent’s trajectory as a physical action minimization problem
+This is the first time your architecture is fully alive as a learning system.
+
+If you want the next evolution, I can turn this into:
+• 	a research‑grade write‑up,
+• 	a diagram,
+• 	or a blueprint for AgentDash.
+Just say the word.
+
+Particles:    attention substrate over inputs x_t
+Fields:       latent field φ_t over space / features
+Geometry:     embedding map E: φ_t → z_t ∈ ℳ
+Synapses:     parameters W, plasticity state P
+Agent:        policy π_θ(a_t | z_t), Lagrangian ℒ
+Memory:       episodic buffer 𝓜
+Env:          state s_t, observation x_t, reward r_t
+
+////////////////////////////
+
+function TRAIN(PIPELINE, ENV, N_episodes, T_max):
+
+    initialize synaptic parameters W, agent parameters θ
+    initialize plasticity state P
+    initialize memory 𝓜 ← ∅
+
+    for episode = 1 to N_episodes:
+
+        s_0 ← ENV.reset()
+        x_0 ← OBSERVE(ENV, s_0)
+
+        trajectory τ ← ∅
+
+        for t = 0 to T_max - 1:
+
+            # 1. Particles interact → attention
+            # Given input x_t, compute attention-weighted representation h_t
+            # Example (scaled dot-product attention):
+            #   Q_t = W_Q x_t,  K_t = W_K x_t,  V_t = W_V x_t
+            #   α_t = softmax( Q_t K_t^T / √d_k )
+            #   h_t = α_t V_t
+            h_t ← PARTICLES.ATTEND(x_t, context = τ)
+
+            # 2. Fields relax → diffusion
+            # Latent field φ_t evolves via a diffusion / relaxation step:
+            #   ∂φ/∂t = D ∇²φ - ∂U(φ)/∂φ
+            # Discretized:
+            #   φ_{t+1/2} = φ_t + Δt [ D ∇²φ_t - ∂U(φ_t)/∂φ ]
+            φ_t ← FIELDS.RELAX(h_t, t)
+
+            # 3. Geometry forms → embeddings
+            # Embedding map E(·) sends field φ_t to manifold ℳ:
+            #   z_t = E(φ_t; W_E)
+            # Distances on ℳ (e.g., Riemannian metric g_ij):
+            #   d(z_i, z_j)^2 = (z_i - z_j)^T G (z_i - z_j)
+            z_t ← GEOMETRY.EMBED(φ_t)
+
+            # 4. Agent chooses action via Lagrangian policy
+            # Agent state q_t (could be z_t or augmented state)
+            # Lagrangian:
+            #   ℒ(q_t, ẋ_t, a_t, t) = K(q_t, ẋ_t, a_t) - V(q_t, t)
+            # Policy π_θ(a_t | z_t) derived from minimizing action:
+            #   S[trajectory] = ∫ ℒ dt
+            a_t ← AGENT.POLICY(z_t, t)
+
+            # 5. Environment transition
+            (s_{t+1}, r_t, done, info) ← ENV.step(a_t)
+            x_{t+1} ← OBSERVE(ENV, s_{t+1})
+
+            # 6. Store event in memory
+            e_t = { t, s_t, x_t, z_t, a_t, r_t }
+            𝓜 ← 𝓜 ∪ { e_t }
+            τ ← τ ∪ { e_t }
+
+            s_t ← s_{t+1}
+            x_t ← x_{t+1}
+
+            if done:
+                break
+
+        # 7. Synapses adapt → STDP
+        # For each synapse (i, j), with pre/post spike times t_pre, t_post:
+        #   Δw_ij = η [ A_+ exp( -Δt / τ_+ ) if Δt > 0
+        #               -A_- exp(  Δt / τ_- ) if Δt < 0 ]
+        # where Δt = t_post - t_pre
+        # Here we generalize to embeddings z_t and rewards:
+        #   ΔW ∝ Σ_t f_STDP(z_t, z_{t+1}, r_t, P_t)
+        W, P ← SYNAPSES.UPDATE(τ, W, P)
+
+        # 8. Agent evolves → Lagrangian learning
+        # Define trajectory-level action:
+        #   S[τ] = Σ_t ℒ(q_t, ẋ_t, a_t, t) Δt
+        # We want to minimize expected action (or maximize -S plus rewards):
+        #   J(θ) = E_τ[ -S[τ] + Σ_t γ^t r_t ]
+        # Gradient estimate (policy gradient style):
+        #   ∇_θ J ≈ Σ_t ∇_θ log π_θ(a_t | z_t) · (R_t - b_t)
+        # where R_t is return, b_t baseline.
+        θ ← AGENT.UPDATE_OBJECTIVE(τ, θ)
+
+    return W, θ, P, 𝓜
+
+    /////////////////////////////
+
+    Stage‑wise math summary
+• 	Attention (Particles):
+
+• 	Diffusion (Fields):
+
+• 	Embeddings (Geometry):
+
+• 	STDP (Synapses):
+
+• 	Lagrangian learning (Agent):
+
+
+
+
+If you want, next step could be: turn this directly into concrete Python with placeholders for each equation, or into a figure/diagram spec
+
+
+///////////////////////
+x_t      : observation at time t
+h_t      : particle‑interaction representation
+φ_t      : latent field
+z_t      : geometric embedding on manifold ℳ
+a_t      : action
+r_t      : reward
+W        : synaptic weights
+P        : plasticity traces
+θ        : agent parameters
+𝓜        : memory buffer
+
+
+///////////////////////////
