@@ -10,8 +10,11 @@ class TelemetryBus:
         return q
 
     def unsubscribe(self, q):
-        self.subscribers.remove(q)
+        if q in self.subscribers:
+            self.subscribers.remove(q)
 
     async def publish(self, event):
         for q in self.subscribers:
             await q.put(event)
+
+bus = TelemetryBus()

@@ -1,21 +1,18 @@
 from fastapi import APIRouter, WebSocket
+from app.core.telemetry_bus import bus
 from app.api.models import TelemetryEvent
-from app.core.pipeline_core.telemetry_bus import TelemetryBus
 
 router = APIRouter()
-bus = TelemetryBus()
 
 @router.websocket("/stream")
 async def telemetry_stream(ws: WebSocket):
     await ws.accept()
-
-    # Subscribe this websocket to the telemetry bus
     queue = bus.subscribe()
 
     try:
         while True:
             event = await queue.get()
             model = TelemetryEvent(**event)
-            await ws.send_json(event)
+            await ws.send_json(model.dict())
     except Exception:
         bus.unsubscribe(queue)
