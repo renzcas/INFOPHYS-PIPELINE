@@ -44,6 +44,8 @@ class Trainer:
                     "score": out["discriminant"]["score"],
                     "regime_shift": out["discriminant"]["regime_shift"]
                 }
-            })
+                   "grokking": {
+                        "signal": out["grokking 
+                })
 
         return {"status": "training complete"}

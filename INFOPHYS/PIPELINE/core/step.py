@@ -4,6 +4,7 @@ from PIPELINE.geometry import GeometryDynamics
 from PIPELINE.synapses import SynapseDynamics
 from PIPELINE.agent import AgentDynamics
 from PIPELINE.discriminant import DiscriminantDetector
+from PIPELINE.grokking import GrokkingMonitor
 
 import torch
 
@@ -14,6 +15,7 @@ class PipelineStep:
         self.geometry = GeometryDynamics(input_dim=self.particles.dim, latent_dim=2)
         self.agent = AgentDynamics(dim=self.particles.dim)
         self.discriminant = DiscriminantDetector()
+        self.grokking = GrokkingMonitor()
 
     def step(self, t):
         # Update fields
@@ -33,6 +35,13 @@ class PipelineStep:
             spread,
             plasticity,
             agent_out["action"]
+
+        grokking_event, grok_signal = self.grokking(
+            entropy,
+            plasticity,
+            spread,
+            disc_score
+        )    
         )
 
 
@@ -65,5 +74,10 @@ class PipelineStep:
             "discriminant": {
                 "score": disc_score,
                 "regime_shift": regime_shift
+            }
+
+            "grokking": {
+                "signal": grok_signal,
+                "event": grokking_event
             }
         }
